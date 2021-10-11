@@ -1,0 +1,925 @@
+<!DOCTYPE hvtml>
+<!-- saved from url=(0033)https://leiyi420.github.io/glow-wavegan2/ -->
+<html lang="en-US"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+<title>Glow-WaveGAN 2: high-quality zero-shot text-to-speech synthesis and any-to-any voice conversion</title>
+<meta name="generator" content="Jekyll v3.9.0">
+<meta property="og:title" content="TODO: title">
+<meta property="og:locale" content="en_US">
+<link rel="canonical" href="https://leiyi420.github.io/glow-wavegan2/">
+<meta property="og:url" content="https://leiyi420.github.io/glow-wavegan2/">
+<meta name="twitter:card" content="summary">
+<!-- End Jekyll SEO tag -->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#157878">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body data-new-gr-c-s-check-loaded="14.1001.0" data-gr-ext-installed="">
+    <section class="page-header">
+    <!-- <h1 class="project-name">Demo PAGE</h1> -->
+    <!-- <h2 class="project-tagline"></h2> -->
+      
+      
+    </section>
+
+<section class="main-content">
+    <h1 id=""><center>Glow-WaveGAN 2: high-quality zero-shot text-to-speech synthesis and any-to-any voice conversion</center></h1>
+
+    <center> Yi Lei<sup>1</sup>, Shan Yang<sup>2</sup>, Jian Cong<sup>1</sup>, Lei Xie<sup>1</sup>, Dan Su<sup>2</sup> </center>
+    <center> <sup>1</sup> Audio, Speech and Language Processing Group (ASLP@NPU), School of Computer Science, Northwestern Polytechnical University, Xi'an, China</center>
+    <center> <sup>2</sup> Tencent AI Lab, China</center>
+
+<h2>Contents</h2>
+<ul>
+  <li><a href="#abstract">Abstract</a></li>
+  <li><a href="#visual">Visualization -- speaker visualization of generated seen and unseen speakers from both VCTK and LibriTTS</a></li>
+  <li><a href="#tts">Demos -- Text-to-speech</a></li>
+    <ul>
+        <li><a href="#2.1">Text-to-speech for seen speakers</a></li>
+        <li><a href="#2.2">Zero-shot text-to-speech for unseen speakers</a></li>
+        <li><a href="#2.3">Zero-shot text-to-speech for unseen speakers of another dataset</a></li>
+    </ul>
+  <li><a href="#vc">Demos -- Voice conversion</a></li>
+    <ul>
+        <li><a href="#3.1">Many-to-many VC of different models</a></li>
+        <li><a href="#3.2">Any-to-any VC of proposed models</a></li>
+		<li><a href="#3.2">Any-to-any VC for cross datasets</a></li>
+    </ul>
+</ul>
+
+<h2 id="abstract">1. Abstract<a name="abstract"></a></h2>
+<p>The zero-shot scenario for speech generation aims at synthesizing a novel unseen voice with only one utterance of the target speaker. Although the challenges of adapting new voice in zero-shot scenario exist in both stages -- acoustic modeling and vocoder, previous works usually consider the problem from only one stage. In this paper, we extend our previous Glow-WaveGAN to Glow-WaveGAN 2, aiming to solve the problem from both stages for high-quality zero-shot text-to-speech synthesis (TTS) and any-to-any voice conversion (VC).
+We firstly build a universal WaveGAN model for extracting latent distribution p(z) of speech and reconstructing waveform from it. Then a flow-based acoustic model only needs to learn the same p(z) from texts, which naturally avoids the mismatch between the acoustic model and the vocoder, resulting in high-quality generated speech without model fine-tuning. Based on a continuous speaker space and the reversible property of flows, the conditional distribution can be obtained for any speaker, and thus we can further conduct high-quality zero-shot speech generation for new speakers. We particularly investigate two methods to construct the speaker space, namely pre-trained and jointly-trained speaker encoder. The superiority of Glow-WaveGAN 2 has been proved through TTS and VC experiments conducted on LibriTTS corpus and VTCK corpus.</p>
+	<center><img src='figs/system.png' ></center>
+<br><br>
+
+<h2>1. Visualization -- speaker visualization of generated seen and unseen speakers from both VCTK and LibriTTS<a name="visual"></a></h2>
+<blockquote>
+<ul>
+<li><span style="color:red;">Red</span> dots: ground-truth seen speakers</li>
+<li><span style="color:green;">Green</span> dots: generated seen speakers</li>
+<li><span style="color:blue;">Blue</span> dots: ground-truth unseen speakers</li>
+<li><span style="color:yellow;">Yellow</span> dots: generated unseen speakers</li>
+</ul>
+</blockquote>
+<center><img src='figs/speaker-visualization.png'></center>
+<p><b>Short summary:</b> Figure above is the visualization of speaker embeddings. Each shape corresponds to a different speaker. For the seen (green and red dots) and unseen (blue and yellow dots) speakers on both TTS and VC tasks, the generated audios and corresponding reference speech of each speaker can form a distinct cluster in our two proposed methods, which shows that the proposed methods can effectively model and control the speaker identities. </p>
+
+<h2>2. Demos -- Speech synthesis of different models for seen and unseen speakers<a name="tts"></a></h2>
+<a name="2.1"><h3>2.1 Text-to-speech for seen speakers</h3></a>
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center"></th>
+      <th style="text-align: center" colspan=8><strong>Seen speakers</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th style="text-align: center"></th>
+      <td style="text-align: center" colspan=4><strong>VCTK</strong></td>
+      <td style="text-align: center" colspan=4><strong>LibriTTS</strong></td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><strong>Speaker Name</strong></td>
+      <td style="text-align: center">p254</td>
+      <td style="text-align: center">p255</td>
+	  <td style="text-align: center">p268</td>
+      <td style="text-align: center">p278</td>
+      <td style="text-align: center">118</td>
+      <td style="text-align: center">4598</td>
+      <td style="text-align: center">251</td>
+	  <td style="text-align: center">5717</td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><strong>Ground-Truth / Reference</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/p254_009.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/p255_335.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/tts-p268_022.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/tts-p278_252.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/118_47824_000087_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/4598_6176_000026_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/251_137823_000017_000000.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/tts-5717_94876_000046_000000.wav"></audio></td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><strong>GlowTTS-HiFiGAN</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-tts/p254_009.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-tts/p255_335.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-tts/tts-p268_022.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-tts/tts-p278_252.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-tts/118_47824_000087_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-tts/4598_6176_000026_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-tts/251_137823_000017_000000.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-tts/tts-5717_94876_000046_000000.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center"><strong>VITS</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/vits/p254_009.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/vits/p255_335.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/vits/tts-p268_022.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/vits/tts-p278_252.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/vits/118_47824_000087_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/vits/4598_6176_000026_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/vits/251_137823_000017_000000.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/vits/tts-5717_94876_000046_000000.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center"><strong>Glow-WaveGAN</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan/p254_009.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan/p255_335.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan/tts-p268_022.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan/tts-p278_252.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan/118_47824_000087_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan/4598_6176_000026_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan/251_137823_000017_000000.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan/tts-5717_94876_000046_000000.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center"><strong>Glow-WaveGAN2-joint</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/p254_009.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/p255_335.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/tts-p268_022.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/tts-p278_252.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/118_47824_000087_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/4598_6176_000026_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/251_137823_000017_000000.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/tts-5717_94876_000046_000000.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center"><strong>Glow-WaveGAN2-pre</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/p254_009.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/p255_335.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/tts-p268_022.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/tts-p278_252.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/118_47824_000087_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/4598_6176_000026_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/251_137823_000017_000000.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/tts-5717_94876_000046_000000.wav"></audio></td>
+    </tr>
+  </tbody>
+</table>
+<p><b>Short summary:</b> Results of TTS on seen speakers from different models show that the Glow-WaveGAN family and VITS performed better than GlowTTS-HiFiGAN in both audio quality and speaker similarity, especially in LibriTTS corpus becuase of the low-quality of the original recordings.</p>
+
+<a name="2.2"><h3>2.2 Zero-shot text-to-speech for unseen speakers</h3></a>
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center"></th>
+      <th style="text-align: center" colspan=8><strong>unseen speakers (zero-shot)</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th style="text-align: center"></th>
+      <td style="text-align: center" colspan=4><strong>VCTK</strong></td>
+      <td style="text-align: center" colspan=4><strong>LibriTTS</strong></td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><strong>Speaker Name</strong></td>
+      <td style="text-align: center">p276</td>
+      <td style="text-align: center">p251</td>
+      <td style="text-align: center">p329</td>
+      <td style="text-align: center">p334</td>
+      <td style="text-align: center">237</td>
+      <td style="text-align: center">2300</td>
+      <td style="text-align: center">1580</td>
+      <td style="text-align: center">7176</td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center"><strong>Reference speech</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/p276_205.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/p251_209.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/p329_010.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/p334_129.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/237_134493_000014_000003.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/2300_131720_000016_000014.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/1580_141083_000047_000006.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/7176_88083_000023_000004.wav"></audio></td>
+    </tr>
+
+
+    <tr>
+      <td style="text-align: center"><strong>Glow-WaveGAN2-joint</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/p276_205.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/p251_209.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/p329_010.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/p334_129.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/237_134493_000014_000003.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/2300_131720_000016_000014.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/1580_141083_000047_000006.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/7176_88083_000023_000004.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center"><strong>Glow-WaveGAN2-pre</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/p276_205.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/p251_209.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/p329_010.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/p334_129.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/237_134493_000014_000003.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/2300_131720_000016_000014.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/1580_141083_000047_000006.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/7176_88083_000023_000004.wav"></audio></td>
+    </tr>
+  </tbody>
+</table>
+<p><b>Short summary:</b> Results of zero-shot TTS on unseen speakers demonstrate that our proposed methods can generate high-quality and similar voices that is unseen to training data using an utterance only.</p>
+
+<a name="2.3"><h3>2.3 Zero-shot text-to-speech for unseen speakers of another dataset</h3></a>
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center"></th>
+      <th style="text-align: center" colspan=8><strong>unseen speakers (zero-shot)</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th style="text-align: center"></th>
+      <td style="text-align: center" colspan=4><strong>Training: LibriTTS, Test: VCTK</strong></td>
+      <td style="text-align: center" colspan=4><strong>Training: VCTK, Test: LibriTTS</strong></td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><strong>Speaker Name</strong></td>
+      <td style="text-align: center">p340</td>
+      <td style="text-align: center">p254</td>
+      <td style="text-align: center">p269_400</td>
+      <td style="text-align: center">p287_320</td>
+      <td style="text-align: center">4957</td>
+      <td style="text-align: center">5126</td>
+      <td style="text-align: center">5400</td>
+      <td style="text-align: center">707</td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center"><strong>Reference speech</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/p340_268.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/p254_263.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/p269_400.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/p287_320.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/4957_36386_000009_000001.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/5126_34483_000015_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/5400_34479_000018_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/ground_truth/707_161166_000002_000002.wav"></audio></td>
+    </tr>
+
+
+    <tr>
+      <td style="text-align: center"><strong>Glow-WaveGAN2-joint</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/p340_268.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/p254_263.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/p269_400.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/p287_320.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/4957_36386_000009_000001.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/5126_34483_000015_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/5400_34479_000018_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-joint/707_161166_000002_000002.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center"><strong>Glow-WaveGAN2-pre</strong></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/p340_268.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/p254_263.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/p269_400.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/p287_320.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/4957_36386_000009_000001.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/5126_34483_000015_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/5400_34479_000018_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/tts/glow-wavegan2-pre/707_161166_000002_000002.wav"></audio></td>
+    </tr>
+  </tbody>
+</table>
+<p><b>Short summary:</b> Results of zero-shot TTS for unseen speakers from another dataset demonstrate the generalization ability of our proposed methods for target speakers from different dataset. It is noticed that the model trained on LibriTTS corpus achieves more speaker similarity than the model trained on VCTK, since the larger dataset learns a righer speaker space with more speakers.</p>
+
+
+<h2>3. Demos -- Voice conversion<a name="vc"></a></h2>
+
+<a name="3.1"><h3>3.1 Many-to-many VC of seen speakers</h3></a>
+<table>
+  <tbody>
+    <tr>
+      <td style="text-align: center; width: 150px;" rowspan=2><strong>Corpus<strong></td>
+      <td style="text-align: center; width: 150px;" rowspan=2><strong>Source speech<strong></td>
+      <td style="text-align: center; width: 150px;" rowspan=2><strong>Target speaker<strong></td>
+      <td style="text-align: center; width: 150px;" colspan=5><strong>Method<strong></td>
+    </tr>
+    <tr>
+      <td style="text-align: center; width: 150px;" rowspan=1><strong>GlowTTS-HiFiGAN<strong></td>
+      <td style="text-align: center; width: 150px;" rowspan=1><strong>VITS<strong></td>
+      <td style="text-align: center; width: 150px;" rowspan=1><strong>Glow-WaveGAN<strong></td>
+      <td style="text-align: center; width: 150px;" rowspan=1><strong>Glow-WaveGAN2-joint<strong></td>
+      <td style="text-align: center; width: 150px;" rowspan=1><strong>Glow-WaveGAN2-pre<strong></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center; width: 150px;" rowspan=4><strong>VCTK<strong></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p247_444.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-tts/p247_444/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/vits/p247_444/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan/p247_444/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p247_444/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p247_444/p245_226.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p292_021.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p265_088.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-tts/p265_088/p292_021.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/vits/p265_088/p292_021.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan/p265_088/p292_021.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p265_088/p292_021.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p265_088/p292_021.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p264_010.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p272_058.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-tts/p272_058/p264_010.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/vits/p272_058/p264_010.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan/p272_058/p264_010.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p272_058/p264_010.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p272_058/p264_010.wav"></audio></td>
+    </tr>
+
+
+    <tr>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p362_057.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p361_178.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-tts/p361_178/p362_057.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/vits/p361_178/p362_057.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan/p361_178/p362_057.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p361_178/p362_057.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p361_178/p362_057.wav"></audio></td>
+    </tr>
+
+
+    <tr>
+      <td style="text-align: center; width: 150px;" rowspan=4><strong>LibriTTS<strong></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/4629_19366_000012_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/1349_135891_000018_000007.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-tts/1349/4629_19366_000012_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/vits/1349/4629_19366_000012_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan/1349/4629_19366_000012_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/1349/4629_19366_000012_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/1349/4629_19366_000012_000000.wav"></audio></td>
+    </tr>
+
+
+    <tr>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/4018_103416_000007_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/1093_132891_000013_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-tts/1093/4018_103416_000007_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/vits/1093/4018_103416_000007_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan/1093/4018_103416_000007_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/1093/4018_103416_000007_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/1093/4018_103416_000007_000000.wav"></audio></td>
+    </tr>
+
+
+    <tr>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/6147_34605_000027_000008.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/4595_45217_000021_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-tts/4595/6147_34605_000027_000008.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/vits/4595/6147_34605_000027_000008.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan/4595/6147_34605_000027_000008.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/4595/6147_34605_000027_000008.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/4595/6147_34605_000027_000008.wav"></audio></td>
+    </tr>
+
+
+    <tr>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/688_15446_000034_000001.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/ground_truth/seen/7416_103126_000062_000001.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-tts/7416/688_15446_000034_000001.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/vits/7416/688_15446_000034_000001.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan/7416/688_15446_000034_000001.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/7416/688_15446_000034_000001.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 150px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/7416/688_15446_000034_000001.wav"></audio></td>
+    </tr>
+
+
+
+  </tbody>
+</table>
+
+<p><b>Short summary:</b> Results of many-to-many voice conversion from different models demonstrate that the Glow-WaveGAN family and VITS model both achieve satisfactory naturalness and quality on the VC task, and the speaker similarity from Glow-WaveGAN family is slightly better than VITS model.</p>
+
+<a name="3.2"><h3>3.2 Any-to-any VC of proposed methods</h3></a>
+<p><b>For better understanding, we cross-convert the 2 seen and 2 unseen speakers of both VCTK and LibriTTS to show the <span style="color:green;">seen2seen</span>, <span style="color:green;">seen2unseen</span>, <span style="color:green;">unseen2seen</span>, <span style="color:green;">unseen2unseen</span> conversion, where the first column contains the ground-truth utterance of each speaker.</b></p>
+<blockquote>
+VCTK results:
+<ul>
+<li>Seen speakers: p245, p301</li>
+<li>Unseen speakers: p251, p276</li>
+</ul>
+</blockquote>
+<br>
+<table>
+    <tr>
+      <th style="text-align: center" colspan=2></th>
+      <th style="text-align: center" colspan=4><strong>Glow-WaveGAN2-joint</strong></th>
+      <th style="text-align: center" colspan=4><strong>Glow-WaveGAN2-pre</strong></th>
+    </tr>
+    <tr>
+      <th style="text-align: center" colspan=2></th>
+      <th style="text-align: center" colspan=2><strong>Seen</strong></th>
+      <th style="text-align: center" colspan=2><strong>Unseen (zero-shot)</strong></th>
+	  
+	  <th style="text-align: center" colspan=2><strong>Seen</strong></th>
+      <th style="text-align: center" colspan=2><strong>Unseen (zero-shot)</strong></th>
+    </tr>
+  <tbody>
+	<tr>
+		<td style="text-align: center" rowspan=2></td>
+		<td style="text-align: center" colspan=1><strong>Ground-Truth</strong></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p245_226.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p301_334.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/unseen/p251_176.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/unseen/p276_084.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p245_226.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p301_334.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/unseen/p251_176.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/unseen/p276_084.wav"></audio></td>
+	<tr>
+    <tr>
+      <td style="text-align: center"></td>
+      <th style="text-align: center" colspan=1>Source &#8595 / Target &#8594</th>
+      <td style="text-align: center">p245</td>
+      <td style="text-align: center">p301</td>
+      <td style="text-align: center">p251</td>
+      <td style="text-align: center">p276</td>
+	  <td style="text-align: center">p245</td>
+      <td style="text-align: center">p301</td>
+      <td style="text-align: center">p251</td>
+      <td style="text-align: center">p276</td>
+    </tr>
+    <tr>
+      <td style="text-align: center" rowspan=2><strong>Seen</strong></td>
+      <td style="text-align: center">p245</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p245/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p301/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p251/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p276/p245_226.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p245/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p301/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p251/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p276/p245_226.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center">p301</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p245/p301_334.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p301/p301_334.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p251/p301_334.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p276/p301_334.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p245/p301_334.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p301/p301_334.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p251/p301_334.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p276/p301_334.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center" rowspan=2><strong>Unseen</strong></td>
+      <td style="text-align: center">p251</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p245/p251_176.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p301/p251_176.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p251/p251_176.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p276/p251_176.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p245/p251_176.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p301/p251_176.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p251/p251_176.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p276/p251_176.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center">p276</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p245/p276_084.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p301/p276_084.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p251/p276_084.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p276/p276_084.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p245/p276_084.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p301/p276_084.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p251/p276_084.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p276/p276_084.wav"></audio></td>
+    </tr>
+  </tbody>
+</table>
+
+<br><br>
+<blockquote>
+LibriTTS results:
+<ul>
+<li>Seen speakers: 1093, 4595 </li>
+<li>Unseen speakers: 237, 8230 </li>
+</ul>
+</blockquote>
+<br>
+<table>
+    <tr>
+      <th style="text-align: center" colspan=2></th>
+      <th style="text-align: center" colspan=4><strong>Glow-WaveGAN2-joint</strong></th>
+      <th style="text-align: center" colspan=4><strong>Glow-WaveGAN2-pre</strong></th>
+    </tr>
+    <tr>
+      <th style="text-align: center" colspan=2></th>
+      <th style="text-align: center" colspan=2><strong>Seen</strong></th>
+      <th style="text-align: center" colspan=2><strong>Unseen (zero-shot)</strong></th>
+	  
+	  <th style="text-align: center" colspan=2><strong>Seen</strong></th>
+      <th style="text-align: center" colspan=2><strong>Unseen (zero-shot)</strong></th>
+    </tr>
+  <tbody>
+	<tr>
+		<td style="text-align: center" rowspan=2></td>
+		<td style="text-align: center" colspan=1><strong>Ground-Truth</strong></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/1093_132891_000013_000000.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/4595_45217_000021_000000.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/unseen/237_126133_000058_000000.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/unseen/8230_279154_000008_000005.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/1093_132891_000013_000000.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/4595_45217_000021_000000.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/unseen/237_126133_000058_000000.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/unseen/8230_279154_000008_000005.wav"></audio></td>
+	<tr>
+    <tr>
+      <td style="text-align: center"></td>
+      <th style="text-align: center" colspan=1>Source &#8595 / Target &#8594</th>
+      <td style="text-align: center">1093</td>
+      <td style="text-align: center">4595</td>
+      <td style="text-align: center">237</td>
+      <td style="text-align: center">8230</td>
+	  <td style="text-align: center">1093</td>
+      <td style="text-align: center">4595</td>
+      <td style="text-align: center">237</td>
+      <td style="text-align: center">8230</td>
+    </tr>
+    <tr>
+      <td style="text-align: center" rowspan=2><strong>Seen</strong></td>
+      <td style="text-align: center">1093</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/1093/1093_132891_000013_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/4595/1093_132891_000013_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/237/1093_132891_000013_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/8230/1093_132891_000013_000000.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/1093/1093_132891_000013_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/4595/1093_132891_000013_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/237/1093_132891_000013_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/8230/1093_132891_000013_000000.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center">4595</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/1093/4595_45217_000021_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/4595/4595_45217_000021_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/237/4595_45217_000021_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/8230/4595_45217_000021_000000.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/1093/4595_45217_000021_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/4595/4595_45217_000021_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/237/4595_45217_000021_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/8230/4595_45217_000021_000000.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center" rowspan=2><strong>Unseen</strong></td>
+      <td style="text-align: center">237</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/1093/237_126133_000058_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/4595/237_126133_000058_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/237/237_126133_000058_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/8230/237_126133_000058_000000.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/1093/237_126133_000058_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/4595/237_126133_000058_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/237/237_126133_000058_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/8230/237_126133_000058_000000.wav"></audio></td>
+    </tr>
+
+    <tr>
+      <td style="text-align: center">8230</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/1093/8230_279154_000008_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/4595/8230_279154_000008_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/237/8230_279154_000008_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/8230/8230_279154_000008_000005.wav"></audio></td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/1093/8230_279154_000008_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/4595/8230_279154_000008_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/237/8230_279154_000008_000005.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/8230/8230_279154_000008_000005.wav"></audio></td>
+    </tr>
+  </tbody>
+</table>
+<p><b>Short summary:</b> The results of any-to-any VC demonstrate that our proposed methods can achieve high quality and similar speech by conducting any-to-any VC of both seen and unseen speakers. </p>
+
+
+<a name="3.3"><h3>3.3 Any-to-any VC of cross corpus</h3></a>
+<p><b>We test the VC performance when the unseen target speaker is from another dataset.</b></p>
+
+
+<blockquote>
+<ul>
+<li>VCTK speakers: p245, p301 </li>
+<li>LibriTTS speakers: 1093, 4595 </li>
+</ul>
+</blockquote>
+<br>
+<table>
+    <tr>
+      <th style="text-align: center"  colspan=2></th>
+      <th style="text-align: center" colspan=4><strong>Glow-WaveGAN2-joint</strong></th>
+      <th style="text-align: center" colspan=4><strong>Glow-WaveGAN2-pre</strong></th>
+    </tr>
+
+  <tbody>
+      <tr>
+      <td style="text-align: center" colspan=1></td>
+      <td style="text-align: center" colspan=1>Target speech&#8594 </td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p245_226.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p301_334.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/1093_132891_000013_000000.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/4595_45217_000021_000000.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p245_226.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p301_334.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/1093_132891_000013_000000.wav"></audio></td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/4595_45217_000021_000000.wav"></audio></td>
+
+    </tr>
+	<tr>
+		<td style="text-align: center" colspan=1>Source Speech &#8595 </td>
+		<td style="text-align: center" colspan=1></td>
+        <td style="text-align: center">p245</td>
+        <td style="text-align: center">p301</td>
+        <td style="text-align: center">1093</td>
+        <td style="text-align: center">4595</td>
+	    <td style="text-align: center">p245</td>
+        <td style="text-align: center">p301</td>
+        <td style="text-align: center">1093</td>
+        <td style="text-align: center">4595</td>
+	<tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p245_226.wav"></audio></td>
+      <td style="text-align: center">p245</td>
+		<td style="text-align: center">-</td>
+		<td style="text-align: center">-</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/1093/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/4595/p245_226.wav"></audio></td>
+		<td style="text-align: center">-</td>
+		<td style="text-align: center">-</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/1093/p245_226.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/4595/p245_226.wav"></audio></td>
+    </tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/p301_334.wav"></audio></td>
+      <td style="text-align: center">p301</td>
+		<td style="text-align: center">-</td>
+		<td style="text-align: center">-</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/1093/p301_334.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/4595/p301_334.wav"></audio></td>
+		<td style="text-align: center">-</td>
+		<td style="text-align: center">-</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/1093/p301_334.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/4595/p301_334.wav"></audio></td>
+    </tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/1093_132891_000013_000000.wav"></audio></td>
+      <td style="text-align: center">1093</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p245/1093_132891_000013_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p301/1093_132891_000013_000000.wav"></audio></td>
+		<td style="text-align: center">-</td>
+		<td style="text-align: center">-</td>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p245/1093_132891_000013_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p301/1093_132891_000013_000000.wav"></audio></td>
+		<td style="text-align: center">-</td>
+		<td style="text-align: center">-</td>
+    </tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/ground_truth/seen/4595_45217_000021_000000.wav"></audio></td>
+      <td style="text-align: center">4595</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p245/4595_45217_000021_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-joint/p301/4595_45217_000021_000000.wav"></audio></td>
+		<td style="text-align: center">-</td>
+		<td style="text-align: center">-</td>
+		<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p245/4595_45217_000021_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/vc/glow-wavegan2-pre/p301/4595_45217_000021_000000.wav"></audio></td>
+		<td style="text-align: center">-</td>
+		<td style="text-align: center">-</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<p><b>We also test the VC performance when both unseen source speaker and target speaker are from another dataset.</b></p>
+
+<blockquote>
+<ul>
+<li>Training dataset: LibriTTS</li>
+<li>Inference dataset: VCTK</li>
+</ul>
+</blockquote>
+<br>
+<table>
+    <tr>
+      <th style="text-align: center"  colspan=2></th>
+      <th style="text-align: center" colspan=4><strong>Glow-WaveGAN2-joint</strong></th>
+      <th style="text-align: center" colspan=4><strong>Glow-WaveGAN2-pre</strong></th>
+    </tr>
+
+  <tbody>
+      <tr>
+      <td style="text-align: center" colspan=1></td>
+      <td style="text-align: center" colspan=1>Target speech&#8594 </td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p252_037.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p257_030.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p271_347.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p351_023.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p252_037.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p257_030.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p271_347.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p351_023.wav"></audio></td>
+    </tr>
+
+	<tr>
+		<td style="text-align: center" colspan=1>Source Speech &#8595 </td>
+		<td style="text-align: center" colspan=1></td>
+        <td style="text-align: center">p252</td>
+        <td style="text-align: center">p257</td>
+        <td style="text-align: center">p271</td>
+        <td style="text-align: center">p351</td>
+        <td style="text-align: center">p252</td>
+        <td style="text-align: center">p257</td>
+        <td style="text-align: center">p271</td>
+        <td style="text-align: center">p351</td>
+	<tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p252_037.wav"></audio></td>
+      <td style="text-align: center">p252</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p252/p252_037.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p257/p252_037.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p271/p252_037.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p351/p252_037.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p252/p252_037.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p257/p252_037.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p271/p252_037.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p351/p252_037.wav"></audio></td>
+    </tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p257_030.wav"></audio></td>
+      <td style="text-align: center">p257</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p252/p257_030.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p257/p257_030.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p271/p257_030.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p351/p257_030.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p252/p257_030.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p257/p257_030.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p271/p257_030.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p351/p257_030.wav"></audio></td>
+    </tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p271_347.wav"></audio></td>
+      <td style="text-align: center">p271</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p252/p271_347.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p257/p271_347.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p271/p271_347.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p351/p271_347.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p252/p271_347.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p257/p271_347.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p271/p271_347.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p351/p271_347.wav"></audio></td>
+    </tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/p351_023.wav"></audio></td>
+      <td style="text-align: center">p351</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p252/p351_023.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p257/p351_023.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p271/p351_023.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/p351/p351_023.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p252/p351_023.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p257/p351_023.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p271/p351_023.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/p351/p351_023.wav"></audio></td>
+    </tr>
+
+
+  </tbody>
+</table>
+
+<br>
+<br>
+<blockquote>
+<ul>
+<li>Training dataset: VCTK</li>
+<li>Inference dataset: LibriTTS</li>
+</ul>
+</blockquote>
+<br>
+<table>
+    <tr>
+      <th style="text-align: center"  colspan=2></th>
+      <th style="text-align: center" colspan=4><strong>Glow-WaveGAN2-joint</strong></th>
+      <th style="text-align: center" colspan=4><strong>Glow-WaveGAN2-pre</strong></th>
+    </tr>
+
+  <tbody>
+      <tr>
+      <td style="text-align: center" colspan=1></td>
+      <td style="text-align: center" colspan=1>Target speech&#8594 </td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/724_123285_000022_000004.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/1752_16632_000081_000002.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/5322_7680_000056_000000.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/7789_103120_000055_000002.wav"></audio></td>
+    	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/724_123285_000022_000004.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/1752_16632_000081_000002.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/5322_7680_000056_000000.wav"></audio></td>
+	  	<td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/7789_103120_000055_000002.wav"></audio></td>
+    </tr>
+
+	<tr>
+		<td style="text-align: center" colspan=1>Source Speech &#8595 </td>
+		<td style="text-align: center" colspan=1></td>
+        <td style="text-align: center">724</td>
+        <td style="text-align: center">1752</td>
+        <td style="text-align: center">5322</td>
+        <td style="text-align: center">7789</td>
+	    <td style="text-align: center">724</td>
+        <td style="text-align: center">1752</td>
+        <td style="text-align: center">5322</td>
+        <td style="text-align: center">7789</td>
+	<tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/724_123285_000022_000004.wav"></audio></td>
+      <td style="text-align: center">724</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/724/724_123285_000022_000004.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/1752/724_123285_000022_000004.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/5322/724_123285_000022_000004.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/7789/724_123285_000022_000004.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/724/724_123285_000022_000004.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/1752/724_123285_000022_000004.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/5322/724_123285_000022_000004.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/7789/724_123285_000022_000004.wav"></audio></td>
+    </tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/1752_16632_000081_000002.wav"></audio></td>
+      <td style="text-align: center">1752</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/724/1752_16632_000081_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/1752/1752_16632_000081_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/5322/1752_16632_000081_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/7789/1752_16632_000081_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/724/1752_16632_000081_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/1752/1752_16632_000081_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/5322/1752_16632_000081_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/7789/1752_16632_000081_000002.wav"></audio></td>
+    </tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/5322_7680_000056_000000.wav"></audio></td>
+      <td style="text-align: center">5322</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/724/5322_7680_000056_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/1752/5322_7680_000056_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/5322/5322_7680_000056_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/7789/5322_7680_000056_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/724/5322_7680_000056_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/1752/5322_7680_000056_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/5322/5322_7680_000056_000000.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/7789/5322_7680_000056_000000.wav"></audio></td>
+ 
+    </tr>
+
+    <tr>
+	  <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/ground-truth/7789_103120_000055_000002.wav"></audio></td>
+      <td style="text-align: center">7789</td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/724/7789_103120_000055_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/1752/7789_103120_000055_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/5322/7789_103120_000055_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/joint/7789/7789_103120_000055_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/724/7789_103120_000055_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/1752/7789_103120_000055_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/5322/7789_103120_000055_000002.wav"></audio></td>
+      <td style="text-align: center"><audio style="width: 100px;" controls="" preload="none" src="samples/cross-vc/pre/7789/7789_103120_000055_000002.wav"></audio></td>
+    </tr>
+
+
+  </tbody>
+</table>
+
+<p><b>Short summary:</b> From the results of any-to-any VC of cross corpus, we can find that when the unseen target speaker is from another daraset, our proposed methods can convert the voice to the target speaker successfully. When the unseen source speaker and unseen target speaker are both from another dataset, the performance of the model training in LibriTTS corpus is better than the model training in VCTK corpus. It may due to the quality of original recordings in VCTK is higher than LibriTTS and the number of speakers in VCTK is lower than LibriTTS. Therefore, the genaralization of models with LibriTTS as training set are greater. </p>
+
+
+      <footer class="site-footer">
+        
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com/">GitHub Pages</a>.</span>
+      </footer>
+    </section>
+</body></html>
